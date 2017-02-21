@@ -17,12 +17,12 @@
 
 /* Working configuration.
  * The assumption is that we are using the same port for the sensor and ethalon pin.
- * The LED pin must be PB2 since it is connected to Timer0 PWM */
-#define ETALON_MASK				(1 << PD0)	// Pin to measure the fixed capacity charge time as it may change in time or with voltage
-#define SENS_MASK				(1 << PD2) 	// Pin where the sensor is connected
-#define PORT					PORTD		// Control port output register
-#define PIN						PIND		// Control port input register
-#define DIR						DDRD		// Control port direction register
+ * The LED pin must be PB2 since it is connected to Timer0 OCM */
+#define ETALON_MASK				(1 << PA1)	// Pin to measure the fixed capacity charge time as it may change in time or with voltage
+#define SENS_MASK				(1 << PA0) 	// Pin where the sensor is connected
+#define PORT					PORTA		// Control port output register
+#define PIN						PINA		// Control port input register
+#define DIR						DDRA		// Control port direction register
 #define DETECT_COEF				25			/* Minimum percentage expected for sensor capacity to change when touched. The lower it is,
 											   the more sensitive the sensor is, but also less	noise resistant */
 /* End of working cfg */

@@ -14,3 +14,6 @@ The touch is detected through changes in the capacity by measuring the time it t
 Using a coaxial cable would increase minimum capacity and decrease change in capacity. Sensitivity can be adjusted by changing the "DETECT_COEF".
 The length of the sensor wire should not exceed 10cm. There is also a fixed capacity which is used as a reference because the threashold of logic levels changes
 as the controller operates.
+
+I used F_CPU 8MHz, but it should work with any other frequency. If you use smaller frequency, you get less resolution and less sensitivity.
+I used prototype PCB with dots at 2,54mm and did my best to minimize the PCB size. The transistor is in SMD package, but you could use any other transistor in any other package.  
