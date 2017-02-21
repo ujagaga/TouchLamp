@@ -12,8 +12,6 @@
 #include <stdbool.h>
 #include <avr/eeprom.h>
 
-#define ledDbg()				do{OCR0A = 64; _delay_ms(200); OCR0A = 0;}while(0)
-
 
 /* Working configuration.
  * The assumption is that we are using the same port for the sensor and ethalon pin.
@@ -34,15 +32,24 @@ uint8_t EEMEM savedPwm;
 uint16_t ratio;		/* ratio between charge time of fixed capacitor and sensor	*/
 
 /* PWM control macros */
-#define PwmOff()				do{ pwm_count = 0; OCR0A = pwm_count;}while(0)
-#define PwmOn()					do{ pwm_count = eeprom_read_byte(&savedPwm); OCR0A = pwm_count;}while(0)
-#define isPwmOn()				(pwm_count > 0)
+#define PwmOff()				do{ OCR0A = 0;}while(0)
+#define PwmOn()					do{ OCR0A = pwm_count;}while(0)
+#define PwmUp()					do{	OCR0A <<= 1; OCR0A++; pwm_count = OCR0A;} while(0)
+#define isPwmOn()				(OCR0A > 0)
+
+#define PwmTgl()				if(OCR0A == 0){		\
+									PwmOn();		\
+								}else{				\
+									PwmOff();		\
+								}
 
 /* Detect macros */
 #define SensEtalon()			((PIN & ETALON_MASK) == ETALON_MASK)
 #define SensDetect()			((PIN & SENS_MASK) == SENS_MASK)
 
-#define PwmUp()					do{	pwm_count <<= 1; pwm_count++; OCR0A = pwm_count;} while(0)
+/* Helper debug macro */
+#define ledDbg()				do{OCR0A = 64; _delay_ms(200); OCR0A = 0;}while(0)
+
 
 void HwInit( void )
 {
@@ -60,7 +67,7 @@ void HwInit( void )
 	OCR0A  = 0;                          	// initial PWM pulse width
 	TCCR0B = (1 << CS01);   				// clock source = CLK/8, start PWM
 
-
+	pwm_count = eeprom_read_byte(&savedPwm);
 }
 
 void clearSensor( void ){
@@ -75,7 +82,7 @@ void clearSensor( void ){
  * It measures the fixed capacity on "ETHALON" pin and compares it to capacity on "SENSOR" pin.This algorithm
  * assumes that both the ETHALON capacitor charge time and SENSOR charge time are less then 256 units of timer 1.
  * */
-bool isTouched( void )
+bool touchDetected( void )
 {
 	uint16_t etalon_time, detect_time, threashold;
 
@@ -102,6 +109,28 @@ bool isTouched( void )
 
 }
 
+/* Implements a low pass filter in case of noise
+ * */
+bool isTouched( void )
+{
+	uint8_t touchCount = 0;
+	uint8_t touchAttempt;
+
+	for(touchAttempt = 0; touchAttempt < 10; touchAttempt++){
+		if(touchDetected()){
+			touchCount++;
+		}
+	}
+
+	if(touchCount > 2){
+		return true;
+	}
+
+	return false;
+
+}
+
+
 /* Calculates the ratio between the "ETHALON" capacity and "SENSOR" capacity
  * because the charge time may vary with different setup*/
 void calibrate( void )
@@ -111,9 +140,7 @@ void calibrate( void )
 	clearSensor();
 
 	TCNT1 = 0;
-
 	while(!SensEtalon());
-
 	etalon_time = TCNT1;
 
 	clearSensor();
@@ -140,23 +167,16 @@ int main(void)
 		if(isTouched()){
 
 			while(isTouched()){
-				_delay_ms(100);
 				touchCount++;
 
-				if((touchCount % 5) == 0){
+				if((touchCount % 2) == 0){
 					PwmUp();
 				}
 			}
 
-			if(touchCount < 5){
+			if(touchCount < 2){
 				/* Only one short touch */
-				if(isPwmOn()){
-					/* Was on */
-					PwmOff();
-				}else{
-					/* Was off */
-					PwmOn();
-				}
+				PwmTgl();
 			}else{
 				eeprom_update_byte(&savedPwm, pwm_count);
 			}
