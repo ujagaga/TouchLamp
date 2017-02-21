@@ -42,19 +42,7 @@ uint16_t ratio;		/* ratio between charge time of fixed capacitor and sensor	*/
 #define SensEtalon()			((PIN & ETALON_MASK) == ETALON_MASK)
 #define SensDetect()			((PIN & SENS_MASK) == SENS_MASK)
 
-
-void PwmUp( void )
-{
-	if(pwm_count == 0){
-		pwm_count = 1;
-	}else if(pwm_count < 127){
-		pwm_count <<= 1;
-	}else{
-		pwm_count = 255;
-	}
-
-	OCR0A = pwm_count;
-}
+#define PwmUp()					do{	pwm_count <<= 1; pwm_count++; OCR0A = pwm_count;} while(0)
 
 void HwInit( void )
 {
